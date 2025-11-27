@@ -27,7 +27,8 @@ services:
     depends_on:
       - postgres
     volumes:
-      - pgadmin_data:/var/lib/pgadmin   # 👈 ADDED THIS
+      - pgadmin_data:/var/lib/pgadmin
+      - ./server_config/postgres_config.json:/pgadmin4/servers.json
     networks:
       - app-net
 
@@ -36,4 +37,4 @@ networks:
 
 volumes:
   postgres_data:
-  pgadmin_data:    # 👈 ADDED THIS
+  pgadmin_data:
