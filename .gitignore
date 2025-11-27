@@ -1,0 +1,7 @@
+/dgraph
+/influxdb
+.env
+.DS_Store
+__MACOSX/
+.AppleDouble
+.LSOverride
