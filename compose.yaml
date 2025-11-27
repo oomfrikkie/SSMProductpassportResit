@@ -26,6 +26,8 @@ services:
       - "5050:80"
     depends_on:
       - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin   # 👈 ADDED THIS
     networks:
       - app-net
 
@@ -34,3 +36,4 @@ networks:
 
 volumes:
   postgres_data:
+  pgadmin_data:    # 👈 ADDED THIS
