@@ -10,7 +10,9 @@ services:
     ports:
       - "5432:5432"
     volumes:
+      # Data folder (if this exists, init files won't run again)
       - postgres_data:/var/lib/postgresql/data
+      # Folder with your postgres_init.sql
       - ./postgres_init:/docker-entrypoint-initdb.d
     networks:
       - app-net
@@ -27,7 +29,9 @@ services:
     ports:
       - "3306:3306"
     volumes:
+      # Data folder (if this exists, init SQL won't run again)
       - mariadb_data:/var/lib/mysql
+      # Folder with mariadb_init.sql
       - ./mariadb_init:/docker-entrypoint-initdb.d
     networks:
       - app-net
@@ -39,8 +43,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      # Default connection can be postgres OR mariadb
-      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DEFAULT_SERVER: postgres  # you can still switch to MariaDB manually
     networks:
       - app-net
 

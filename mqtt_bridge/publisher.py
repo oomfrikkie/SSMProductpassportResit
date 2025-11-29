@@ -3,71 +3,51 @@ import json
 import random
 import paho.mqtt.client as mqtt
 
-
-# CONFIGURATION
-# -------------------------------------------------------------------
-BROKER = "localhost"       
+# ================================
+# MQTT CONFIG
+# ================================
+BROKER = "localhost"
 PORT = 1883
-TOPIC = "factory/data/sensor1"
-CLIENT_ID = "factory_publisher"
+TOPIC = "factory/material_event"
+CLIENT_ID = "material_publisher"
 
-
-# MQTT CONNECTION
-# -------------------------------------------------------------------
 client = mqtt.Client(CLIENT_ID)
 
 def on_connect(client, userdata, flags, rc):
-    if rc == 0:
-        print("Connected to MQTT Broker")
-    else:
-        print(f"Failed to connect, code {rc}")
+    print("Connected" if rc == 0 else f"Failed: {rc}")
 
 client.on_connect = on_connect
-client.connect(BROKER, PORT, keepalive=60)
+client.connect(BROKER, PORT, 60)
 
+# ================================
+# SAMPLE DATA (MATCHES Postgres)
+# ================================
+SCANNERS = ["SCN001", "SCN002", "SCN003"]
 
-# PUBLISHING LOOP
-# -------------------------------------------------------------------
-try:
-    while True:
-        # Example simulated data payload
-        payload = {
-            "factory_id": "F001",
-            "factory_name": "Burger Factory",
-            "factory_location": "Berlin",
+PRODUCTS = ["P001", "P002", "P003", "P004"]
 
-            "machine_id": "M101",
-            "machine_name": "Burger Former",
-            "model": "CB-500",
-            "status": "Active",
+PRODUCT_MATERIALS = {
+    "P001": ["MAT001", "MAT002"],
+    "P002": ["MAT003", "MAT004"],
+    "P003": ["MAT005", "MAT002"],
+    "P004": ["MAT006", "MAT005", "MAT004"],
+}
 
-            "metric": "temperature",
-            "value": temperature,
-            "unit": "°C",
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+while True:
+    product = random.choice(PRODUCTS)
+    material = random.choice(PRODUCT_MATERIALS[product])
+    scanner = random.choice(SCANNERS)
 
-            "product_id": "P9001",
-            "product_name": "Classic Burger",
-            "product_type": "Food",
-            "createdAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "materials": [
-                {"id": "MAT01", "name": "Beef Patty", "type": "Ingredient"},
-                {"id": "MAT02", "name": "Bun", "type": "Ingredient"}
-            ]
-        }
+    payload = {
+        "scanner_id": scanner,
+        "product_id": product,
+        "material_id": material,
+        "event_type": "added",
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    }
 
-        message = json.dumps(payload)
-        result = client.publish(TOPIC, message)
+    message = json.dumps(payload)
+    client.publish(TOPIC, message)
+    print("Sent:", message)
 
-        # Checking if publishing was successful
-        status = result[0]
-        if status == 0:
-            print(f"Sent `{message}` to topic `{TOPIC}`")
-        else:
-            print(f"Failed to send message to topic {TOPIC}")
-
-        time.sleep(2)  # Continuously publishing every 2 seconds
-
-except KeyboardInterrupt:
-    print("\n Stopping publisher...")
-    client.disconnect()
+    time.sleep(2)
