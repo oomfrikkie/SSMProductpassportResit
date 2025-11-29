@@ -3,15 +3,12 @@ import json
 import random
 import paho.mqtt.client as mqtt
 
-# ================================
-# MQTT CONFIG
-# ================================
 BROKER = "localhost"
 PORT = 1883
 TOPIC = "factory/material_event"
 CLIENT_ID = "material_publisher"
 
-client = mqtt.Client(CLIENT_ID)
+client = mqtt.Client(client_id=CLIENT_ID, protocol=mqtt.MQTTv5)
 
 def on_connect(client, userdata, flags, rc):
     print("Connected" if rc == 0 else f"Failed: {rc}")
@@ -19,11 +16,7 @@ def on_connect(client, userdata, flags, rc):
 client.on_connect = on_connect
 client.connect(BROKER, PORT, 60)
 
-# ================================
-# SAMPLE DATA (MATCHES Postgres)
-# ================================
 SCANNERS = ["SCN001", "SCN002", "SCN003"]
-
 PRODUCTS = ["P001", "P002", "P003", "P004"]
 
 PRODUCT_MATERIALS = {
@@ -43,7 +36,7 @@ while True:
         "product_id": product,
         "material_id": material,
         "event_type": "added",
-        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) # ← FIXED
     }
 
     message = json.dumps(payload)

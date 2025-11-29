@@ -1,3 +1,5 @@
-paho-mqtt>=1.6.1
-influxdb-client>=1.33.0
-requests>=2.28.0
+paho-mqtt
+mysql-connector-python
+psycopg2-binary
+python-dotenv
+requests

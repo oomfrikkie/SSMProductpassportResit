@@ -63,7 +63,8 @@ check_python_requirements() {
 
     if ! python3 -c "import paho.mqtt.client" 2>/dev/null; then
         echo "📦 Installing paho-mqtt..."
-        pip3 install paho-mqtt
+        pip3 install -r mqtt_bridge/requirements.txt
+
         echo "✅ Installed paho-mqtt"
     else
         echo "✅ paho-mqtt already installed"

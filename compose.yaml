@@ -10,9 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      # Data folder (if this exists, init files won't run again)
       - postgres_data:/var/lib/postgresql/data
-      # Folder with your postgres_init.sql
       - ./postgres_init:/docker-entrypoint-initdb.d
     networks:
       - app-net
@@ -29,10 +27,22 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      # Data folder (if this exists, init SQL won't run again)
       - mariadb_data:/var/lib/mysql
-      # Folder with mariadb_init.sql
       - ./mariadb_init:/docker-entrypoint-initdb.d
+    networks:
+      - app-net
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: mqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"   # MQTT
+      - "9001:9001"   # Websocket (optional)
+    volumes:
+      - ./mqtt_bridge/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mqtt_data:/mosquitto/data
+      - mqtt_log:/mosquitto/log
     networks:
       - app-net
 
@@ -43,7 +53,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      ADMINER_DEFAULT_SERVER: postgres  # you can still switch to MariaDB manually
+      ADMINER_DEFAULT_SERVER: postgres
     networks:
       - app-net
 
@@ -53,3 +63,5 @@ networks:
 volumes:
   postgres_data:
   mariadb_data:
+  mqtt_data:
+  mqtt_log:
