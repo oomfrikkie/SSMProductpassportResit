@@ -1,4 +1,3 @@
-import os
 import json
 from datetime import datetime
 import paho.mqtt.client as mqtt
@@ -12,23 +11,24 @@ BROKER = "localhost"
 PORT = 1883
 TOPIC = "factory/material_event"
 
-# MARIA DB (time-series)
-maria = mysql.connector.connect(
-    host="localhost",
-    user="admin",
-    password="adminpassword",
-    database="mariadb_testdb"
-)
-maria_cur = maria.cursor()
+# ================================
+# CREATE FRESH MARIA + POSTGRES CONN EACH TIME
+# ================================
+def open_maria():
+    return mysql.connector.connect(
+        host="localhost",
+        user="admin",
+        password="adminpassword",
+        database="mariadb_testdb"
+    )
 
-# POSTGRES (reference data)
-postgres = psycopg2.connect(
-    host="localhost",
-    user="admin",
-    password="adminpassword",
-    database="testdb"
-)
-pg_cur = postgres.cursor()
+def open_postgres():
+    return psycopg2.connect(
+        host="localhost",
+        user="admin",
+        password="adminpassword",
+        database="testdb"
+    )
 
 
 # ================================
@@ -55,7 +55,7 @@ def on_message(client, userdata, msg, properties=None):
 
 
 # ================================
-# STORE EVENT IN MARIA DB
+# STORE EVENT IN MARIA DB (SAFE)
 # ================================
 def store_event(data):
     scanner = data.get("scanner_id")
@@ -72,20 +72,29 @@ def store_event(data):
         VALUES (%s, %s, %s, %s, %s)
     """
 
-    maria_cur.execute(sql, (scanner, product, material, event_type, timestamp))
-    maria.commit()
+    try:
+        conn = open_maria()          # <--- FRESH CONNECTION
+        cur = conn.cursor()
+        cur.execute(sql, (scanner, product, material, event_type, timestamp))
+        conn.commit()
+        cur.close()
+        conn.close()
 
-    print(f"Inserted event → {product} + {material} @ {scanner}")
+        print(f"✔ Inserted event → product={product}, material={material}, scanner={scanner}")
 
+    except Exception as e:
+        print("❌ Failed to insert event into MariaDB:", e)
 
 
 # ================================
 # START MQTT CLIENT
 # ================================
-client = mqtt.Client()
+client = mqtt.Client(protocol=mqtt.MQTTv5)
 client.on_connect = on_connect
 client.on_message = on_message
 
-print("Connecting to MQTT...")
+print("Connecting to MQTT broker...")
 client.connect(BROKER, PORT, 60)
+
+print("Bridge running 🔄 Listening for events...")
 client.loop_forever()
