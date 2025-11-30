@@ -43,12 +43,36 @@ wait_for_postgres() {
 # -------------------------------
 wait_for_mariadb() {
     echo "🔍 Checking MariaDB..."
-    until docker exec mariadb mysqladmin ping -uadmin -padminpassword --silent > /dev/null 2>&1; do
-        echo "   MariaDB not ready yet..."
+
+    attempts=0
+    max_attempts=60
+
+    # Wait until either the published TCP port responds (host-level check) or
+    # the container logs explicitly show the server is "ready for connections".
+    until ( nc -z 127.0.0.1 3306 >/dev/null 2>&1 ) || \
+          ( docker compose logs --tail=200 mariadb | grep -q "ready for connections" ); do
+        # If container isn't running, show recent logs to help debugging
+        if ! docker ps --format '{{.Names}}' | grep -q '^mariadb$'; then
+            echo "   MariaDB container is not running. Showing last logs..."
+            docker compose logs --tail=50 mariadb || true
+        else
+            echo "   MariaDB not ready yet (attempt $((attempts+1))/$max_attempts)..."
+        fi
+
+        attempts=$((attempts+1))
+        if [ "$attempts" -ge "$max_attempts" ]; then
+            echo "❌ MariaDB did not become ready after $max_attempts attempts. Showing logs and exiting."
+            docker compose logs --tail=200 mariadb || true
+            exit 1
+        fi
+
         sleep 2
     done
-    echo "✅ MariaDB is ready!"
+
+    echo "✅ MariaDB is ready (TCP or logs indicate readiness)!"
 }
+
+
 
 # -------------------------------
 # CHECK PYTHON + PAHO MQTT
