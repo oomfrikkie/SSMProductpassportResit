@@ -2,12 +2,7 @@
 
 set -e  # exit on error
 
-# ---------------------------------------------------------
-# FIX PATH FOR MACOS (Finder has a broken PATH)
-# ---------------------------------------------------------
-export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
-
-# Resolve script directory
+# Resolve script directory (works on macOS/Linux/Windows Git Bash)
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo "🚀 Starting Databases + Adminer Setup..."
@@ -16,7 +11,7 @@ echo "🚀 Starting Databases + Adminer Setup..."
 # CHECK DOCKER
 # -------------------------------
 check_docker() {
-    if ! docker info > /dev/null 2>&1; then
+    if ! docker info >/dev/null 2>&1; then
         echo "❌ Docker is not running. Start Docker Desktop and try again."
         exit 1
     fi
@@ -36,7 +31,7 @@ start_stack() {
 # -------------------------------
 wait_for_postgres() {
     echo "🔍 Checking Postgres..."
-    until docker exec postgres pg_isready -U admin > /dev/null 2>&1; do
+    until docker exec postgres pg_isready -U admin >/dev/null 2>&1; do
         echo "   Postgres not ready yet..."
         sleep 2
     done
@@ -76,85 +71,57 @@ wait_for_mariadb() {
 }
 
 # -------------------------------
-# CHECK PYTHON + PAHO MQTT
+# UNIVERSAL PYTHON + REQUIREMENTS
 # -------------------------------
 check_python_requirements() {
     echo "🐍 Checking Python environment..."
-    # Locate python3
+
     PYTHON_BIN=""
-    if command -v python3 >/dev/null 2>&1; then
-        PYTHON_BIN="$(command -v python3)"
-    elif [ -x "/opt/homebrew/bin/python3" ]; then
-        PYTHON_BIN="/opt/homebrew/bin/python3"
-    elif [ -x "/usr/bin/python3" ]; then
-        PYTHON_BIN="/usr/bin/python3"
+
+    # ---------- WINDOWS ----------
+    if command -v py >/dev/null 2>&1; then
+        PYTHON_BIN="py"
+    elif command -v python >/dev/null 2>&1; then
+        PYTHON_BIN="python"
     fi
 
-    # If Python3 not found try common package managers to install it (best-effort)
+    # ---------- MAC + LINUX ----------
     if [ -z "$PYTHON_BIN" ]; then
-        echo "⚠️  Python3 was not found. Attempting to install Python3 automatically..."
-
-        if command -v brew >/dev/null 2>&1; then
-            echo "   -> Installing Python3 using Homebrew (requires Homebrew and network)..."
-            brew update || true
-            brew install python || true
-        elif command -v apt-get >/dev/null 2>&1; then
-            echo "   -> Installing Python3 using apt-get (requires sudo)..."
-            sudo apt-get update && sudo apt-get install -y python3 python3-venv python3-pip || true
-        elif command -v dnf >/dev/null 2>&1; then
-            echo "   -> Installing Python3 using dnf (requires sudo)..."
-            sudo dnf install -y python3 python3-venv python3-pip || true
-        elif command -v yum >/dev/null 2>&1; then
-            echo "   -> Installing Python3 using yum (requires sudo)..."
-            sudo yum install -y python3 python3-venv python3-pip || true
-        elif command -v pacman >/dev/null 2>&1; then
-            echo "   -> Installing Python3 using pacman (requires sudo)..."
-            sudo pacman -S --noconfirm python || true
-        else
-            echo "\nCould not detect a supported package manager to auto-install Python3."
-            echo "Please install Python 3 manually and re-run this script. Suggestions:" 
-            echo "  - macOS (Homebrew): /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"; brew install python"
-            echo "  - Ubuntu/Debian: sudo apt-get update && sudo apt-get install -y python3 python3-venv python3-pip"
-            echo "  - CentOS/Fedora: sudo dnf install -y python3"
-            exit 1
-        fi
-
-        # re-detect python after attempted install
         if command -v python3 >/dev/null 2>&1; then
-            PYTHON_BIN="$(command -v python3)"
+            PYTHON_BIN="python3"
+        elif [ -x "/usr/bin/python3" ]; then
+            PYTHON_BIN="/usr/bin/python3"
+        elif [ -x "/opt/homebrew/bin/python3" ]; then
+            PYTHON_BIN="/opt/homebrew/bin/python3"
         fi
     fi
 
+    # No python found
     if [ -z "$PYTHON_BIN" ]; then
-        echo "❌ Python3 is not installed or could not be installed automatically."
+        echo "❌ Python3 is not installed or not on PATH."
+        echo "Windows: https://www.python.org/downloads/windows/"
+        echo "Mac: brew install python"
         exit 1
     fi
 
-    echo "📌 Using Python at: $PYTHON_BIN"
+    echo "📌 Using Python: $PYTHON_BIN"
 
+    # Requirements file
     REQ="$SCRIPT_DIR/mqtt_bridge/requirements.txt"
     if [ ! -f "$REQ" ]; then
-        echo "❌ requirements.txt NOT FOUND at: $REQ"
+        echo "❌ requirements.txt not found at: $REQ"
         exit 1
     fi
 
-    # Ensure pip is available for this Python
-    if ! "$PYTHON_BIN" -m pip --version >/dev/null 2>&1; then
-        echo "   -> pip not found for $PYTHON_BIN; trying to bootstrap pip..."
-        if "$PYTHON_BIN" -m ensurepip >/dev/null 2>&1; then
-            echo "   -> ensurepip succeeded"
-        else
-            echo "   -> ensurepip failed; attempting get-pip.py"
-            curl -sS https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py || true
-            "$PYTHON_BIN" /tmp/get-pip.py || true
-        fi
+    # Ensure pip is available
+    if ! $PYTHON_BIN -m pip --version >/dev/null 2>&1; then
+        echo "⚠️ pip missing — installing..."
+        $PYTHON_BIN -m ensurepip --default-pip || true
     fi
 
-    # Install (or upgrade) all requirements unconditionally — pip is idempotent
-    echo "📦 Installing Python requirements from $REQ..."
-    "$PYTHON_BIN" -m pip install --upgrade pip
-    "$PYTHON_BIN" -m pip install -r "$REQ"
-    echo "✅ Python requirements installed (or already satisfied)."
+    echo "📦 Installing Python requirements..."
+    $PYTHON_BIN -m pip install -r "$REQ"
+    echo "✅ Python requirements installed."
 }
 
 # -------------------------------
