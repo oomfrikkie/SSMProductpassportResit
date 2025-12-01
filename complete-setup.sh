@@ -77,23 +77,30 @@ wait_for_mariadb() {
 # -------------------------------
 # CHECK PYTHON + PAHO MQTT
 # -------------------------------
+# -------------------------------
+# CHECK PYTHON + PAHO MQTT
+# -------------------------------
 check_python_requirements() {
     echo "🐍 Checking Python environment..."
+
+    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
     if ! command -v python3 >/dev/null 2>&1; then
         echo "❌ Python3 is not installed. Install Python 3 first."
         exit 1
     fi
 
+    REQ="$SCRIPT_DIR/mqtt_bridge/requirements.txt"
+
     if ! python3 -c "import paho.mqtt.client" 2>/dev/null; then
         echo "📦 Installing paho-mqtt..."
-        pip3 install -r mqtt_bridge/requirements.txt
-
+        python3 -m pip install -r "$REQ"
         echo "✅ Installed paho-mqtt"
     else
         echo "✅ paho-mqtt already installed"
     fi
 }
+
 
 main() {
     check_docker
