@@ -78,14 +78,14 @@ check_python_requirements() {
 
     PYTHON_BIN=""
 
-    # ---------- WINDOWS ----------
-    if command -v py >/dev/null 2>&1; then
-        PYTHON_BIN="py"
+    # ----- WINDOWS -----
+    if command -v python.exe >/dev/null 2>&1; then
+        PYTHON_BIN="$(command -v python.exe)"
     elif command -v python >/dev/null 2>&1; then
-        PYTHON_BIN="python"
+        PYTHON_BIN="$(command -v python)"
     fi
 
-    # ---------- MAC + LINUX ----------
+    # ----- MAC + LINUX -----
     if [ -z "$PYTHON_BIN" ]; then
         if command -v python3 >/dev/null 2>&1; then
             PYTHON_BIN="python3"
@@ -96,33 +96,29 @@ check_python_requirements() {
         fi
     fi
 
-    # No python found
     if [ -z "$PYTHON_BIN" ]; then
-        echo "❌ Python3 is not installed or not on PATH."
-        echo "Windows: https://www.python.org/downloads/windows/"
-        echo "Mac: brew install python"
+        echo "❌ No valid Python installation found."
         exit 1
     fi
 
-    echo "📌 Using Python: $PYTHON_BIN"
+    echo "📌 Using Python at: $PYTHON_BIN"
 
-    # Requirements file
     REQ="$SCRIPT_DIR/mqtt_bridge/requirements.txt"
     if [ ! -f "$REQ" ]; then
-        echo "❌ requirements.txt not found at: $REQ"
+        echo "❌ requirements.txt NOT FOUND at: $REQ"
         exit 1
     fi
 
-    # Ensure pip is available
-    if ! $PYTHON_BIN -m pip --version >/dev/null 2>&1; then
+    if ! "$PYTHON_BIN" -m pip --version >/dev/null 2>&1; then
         echo "⚠️ pip missing — installing..."
-        $PYTHON_BIN -m ensurepip --default-pip || true
+        "$PYTHON_BIN" -m ensurepip --default-pip || true
     fi
 
     echo "📦 Installing Python requirements..."
-    $PYTHON_BIN -m pip install -r "$REQ"
+    "$PYTHON_BIN" -m pip install -r "$REQ"
     echo "✅ Python requirements installed."
 }
+
 
 # -------------------------------
 # MAIN
