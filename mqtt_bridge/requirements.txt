@@ -1,14 +1,5 @@
-# MQTT
 paho-mqtt==2.1.0
-
-# MariaDB / MySQL
 mysql-connector-python==9.0.0
-
-# PostgreSQL
 psycopg2-binary==2.9.9
-
-# Environment variables
 python-dotenv==1.0.1
-
-# HTTP / API calls (if you use them anywhere)
 requests==2.32.3
