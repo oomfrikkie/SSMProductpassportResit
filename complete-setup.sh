@@ -30,11 +30,36 @@ wait_for_postgres() {
 
 wait_for_mariadb() {
     echo "🔍 Checking MariaDB..."
-    until docker exec mariadb mysqladmin ping -uadmin -padminpassword --silent >/dev/null 2>&1; do
-        echo "   MariaDB not ready yet..."
+    # Some MariaDB images do not include client tools like `mysqladmin`.
+    # Use a host TCP probe to port 3306 and also grep container logs
+    # for the 'ready for connections' message as a fallback.
+    local attempts=0
+    local max_attempts=60
+    while true; do
+        attempts=$((attempts+1))
+
+        # 1) Fast TCP check from host to mapped port
+        if bash -c "</dev/tcp/127.0.0.1/3306" >/dev/null 2>&1; then
+            echo "✅ MariaDB TCP port is open (localhost:3306)."
+            break
+        fi
+
+        # 2) Check container logs for a ready message (helpful inside Docker)
+        if docker compose logs mariadb --no-color --tail=200 2>/dev/null | grep -i -m1 "ready for connections" >/dev/null 2>&1; then
+            echo "✅ MariaDB reports 'ready for connections' in container logs."
+            break
+        fi
+
+        echo "   MariaDB not ready yet... (attempt ${attempts}/${max_attempts})"
+
+        if [ "$attempts" -ge "$max_attempts" ]; then
+            echo "❌ MariaDB did not become ready after ${max_attempts} attempts. Showing last 400 lines of logs:"
+            docker compose logs mariadb --no-color --tail=400 || true
+            exit 1
+        fi
+
         sleep 2
     done
-    echo "✅ MariaDB is ready!"
 }
 
 check_python_requirements() {

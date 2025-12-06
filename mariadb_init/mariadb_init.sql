@@ -1,6 +1,10 @@
 -- ======================================
 -- SCANNERS TABLE
 -- ======================================
+-- Ensure target database exists and is selected
+CREATE DATABASE IF NOT EXISTS mariadb_testdb;
+USE mariadb_testdb;
+
 CREATE TABLE scanner (
     id VARCHAR(50) PRIMARY KEY,
     location VARCHAR(255) NOT NULL,
