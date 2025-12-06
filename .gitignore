@@ -1,6 +1,5 @@
 /dgraph
-/influxdb
-.env
+/influxdb.env
 .DS_Store
 __MACOSX/
 .AppleDouble

@@ -2,7 +2,8 @@ import json
 from datetime import datetime
 import paho.mqtt.client as mqtt
 import mysql.connector
-import psycopg2
+import psycopg
+
 
 # ================================
 # CONFIG
@@ -23,12 +24,13 @@ def open_maria():
     )
 
 def open_postgres():
-    return psycopg2.connect(
+    return psycopg.connect(
         host="localhost",
         user="admin",
         password="adminpassword",
-        database="testdb"
+        dbname="testdb"
     )
+
 
 
 # ================================
