@@ -39,8 +39,8 @@ wait_for_mariadb() {
         attempts=$((attempts+1))
 
         # 1) Fast TCP check from host to mapped port
-        if bash -c "</dev/tcp/127.0.0.1/3306" >/dev/null 2>&1; then
-            echo "✅ MariaDB TCP port is open (localhost:3306)."
+        if bash -c "</dev/tcp/127.0.0.1/3307" >/dev/null 2>&1; then
+            echo "✅ MariaDB TCP port is open (localhost:3307)."
             break
         fi
 
@@ -64,15 +64,35 @@ wait_for_mariadb() {
 
 check_python_requirements() {
     echo "🐍 Checking Python environment..."
+    # Try multiple common python executables and verify they are usable Python 3 interpreters.
+    local candidates=("python3" "python" "python.exe" "py")
+    PYTHON_BIN=""
 
-    if command -v python3 >/dev/null 2>&1; then
-        PYTHON_BIN="python3"
-    elif command -v python >/dev/null 2>&1; then
-        PYTHON_BIN="python"
-    elif command -v python.exe >/dev/null 2>&1; then
-        PYTHON_BIN="python.exe"
-    else
-        echo "❌ No Python found."
+    for c in "${candidates[@]}"; do
+        if command -v "$c" >/dev/null 2>&1; then
+            if [ "$c" = "py" ]; then
+                # Use the py launcher with -3 to request Python 3
+                if py -3 -c "import sys; sys.exit(0)" >/dev/null 2>&1; then
+                    PYTHON_BIN="py -3"
+                    break
+                fi
+            else
+                # Verify the candidate runs and is Python 3
+                if "$c" -c "import sys; sys.exit(0)" >/dev/null 2>&1; then
+                    ver=$("$c" -c "import sys; print(sys.version_info[0])" 2>/dev/null || true)
+                    if [ "$ver" = "3" ]; then
+                        PYTHON_BIN="$c"
+                        break
+                    fi
+                fi
+            fi
+        fi
+    done
+
+    if [ -z "$PYTHON_BIN" ]; then
+        echo "❌ No usable Python 3 interpreter found."
+        echo "   Install Python 3 and ensure it's on PATH, or disable the Microsoft Store 'App execution aliases' for Python."
+        echo "   Download: https://www.python.org/downloads/"
         exit 1
     fi
 
@@ -85,6 +105,7 @@ check_python_requirements() {
         exit 1
     fi
 
+    # Upgrade pip where possible
     $PYTHON_BIN -m pip install --upgrade pip >/dev/null 2>&1 || true
 
     echo "📦 Installing Python requirements..."
@@ -104,7 +125,7 @@ main() {
     echo "🎉 Everything is ready!"
     echo "==============================="
     echo "📦 Postgres running at localhost:5432"
-    echo "📦 MariaDB running at localhost:3306"
+    echo "📦 MariaDB running at localhost:3307"
     echo "🌐 Adminer UI at http://localhost:8080"
     echo ""
 }
