@@ -5,7 +5,6 @@ import paho.mqtt.client as mqtt
 
 BROKER = "localhost"
 PORT = 1883
-TOPIC = "factory/material_event"
 CLIENT_ID = "material_publisher"
 
 client = mqtt.Client(client_id=CLIENT_ID, protocol=mqtt.MQTTv5)
@@ -36,11 +35,13 @@ while True:
         "product_id": product,
         "material_id": material,
         "event_type": "added",
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()) # ← FIXED
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     }
 
+    unstopic = f"factory/line1/scanner/{scanner}/event"
+
     message = json.dumps(payload)
-    client.publish(TOPIC, message)
-    print("Sent:", message)
+    client.publish(unstopic, message)
+    print("Sent:", unstopic, message)
 
     time.sleep(2)
